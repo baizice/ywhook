@@ -1,0 +1,3 @@
+-keep class com.op.hook.reamicro.** { *; }
+-keepclassmembers class * { public *; }
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault
