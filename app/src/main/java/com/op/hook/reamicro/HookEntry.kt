@@ -1,134 +1,126 @@
 package com.op.hook.reamicro
 
-import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.factory.toClass
-import com.highcapable.yukihookapi.hook.log.YLog
-import com.highcapable.yukihookapi.hook.type.java.BooleanType
-import com.highcapable.yukihookapi.hook.type.java.IntType
-import com.highcapable.yukihookapi.hook.type.java.StringClass
-import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
+import android.util.Log
+
+import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.yukihookapi.YukiHook
+import com.highcapable.yukihookapi.annotation.xposed.YukiHookXposed82Entry
+import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.intercept
+import com.highcapable.yukihookapi.extension.kavaref.toClass
+import com.highcapable.yukihookapi.hook.xposed.YukiHookXposedModule
 
 /**
- * 阅微 2.3.2（app.zhendong.reamicro）VIP 解锁 · YukiHookAPI 1.1.x
+ * 阅微 2.3.2（app.zhendong.reamicro）VIP 解锁模块
+ *
+ * 框架：YukiHook 1.5.0（yukihook-core / runtime-xposed82 / extension-kavaref / compiler）
  *
  * 逆向结论：所有本地会员判定收敛在
  *   data.res.user.UserModelsKt.isVipActive(UserInfo): Boolean
- * 共 21 处调用点（增强服务 / 局域网同步 / 阅读器分页 / 豆瓣评分 / 图表 / 关联封面 / 动态主题 …）
+ * 21 处调用点（增强服务 / 局域网同步 / 阅读器分页 / 豆瓣评分 / 图表 / 关联封面 / 动态主题 …）
  */
-@InjectYukiHookWithXposed
-class HookEntry : IYukiHookXposedInit {
+@YukiHookXposed82Entry
+object HookEntry : YukiHookXposedModule {
 
-    override fun onInit() = configs {
-        debugTag = TAG
-        // 发布时改成 BuildConfig.DEBUG
-        isDebug = true
-    }
-
-    override fun onHook() = encase {
-        loadApp(name = PKG) {
-
-            // ① 核心开关：isVipActive(UserInfo) 恒 true
-            runCatching {
-                USER_MODELS.toClass()
-                    .method {
-                        name = "isVipActive"
-                        returnType = BooleanType
-                    }
-                    .hook {
-                        before { result = true }
-                    }
-                YLog.info("$TAG | isVipActive -> true hooked")
-            }.onFailure {
-                YLog.error("$TAG | hook isVipActive failed: $it")
+    override fun onInit() {
+        YukiHook.configure {
+            logging {
+                tag = TAG
+                enabled = true
+                recording = false
             }
-
-            // ② UI 展示：userType = 4 (UserType.SUPER_VIP)
-            runCatching {
-                USER_INFO.toClass()
-                    .method {
-                        name = "getUserType"
-                        emptyParameters()
-                        returnType = IntType
-                    }
-                    .hook {
-                        after { result = USER_TYPE_SUPER_VIP }
-                    }
-                YLog.info("$TAG | getUserType -> $USER_TYPE_SUPER_VIP hooked")
-            }.onFailure {
-                YLog.error("$TAG | hook getUserType failed: $it")
-            }
-
-            // ③ UI 展示：到期时间拉到 2099
-            runCatching {
-                USER_INFO.toClass()
-                    .method {
-                        name = "getVipExpireTime"
-                        emptyParameters()
-                        returnType = StringClass
-                    }
-                    .hook {
-                        after { result = VIP_EXPIRE_FAKE }
-                    }
-                YLog.info("$TAG | getVipExpireTime -> $VIP_EXPIRE_FAKE hooked")
-            }.onFailure {
-                YLog.error("$TAG | hook getVipExpireTime failed: $it")
-            }
-
-            // ④ 局域网同步策略
-            runCatching {
-                SYNC_POLICY.toClass()
-                    .method {
-                        name = "isVip"
-                        returnType = BooleanType
-                    }
-                    .hook {
-                        before { result = true }
-                    }
-                YLog.info("$TAG | SyncPolicy.isVip -> true hooked")
-            }.onFailure {
-                YLog.error("$TAG | hook SyncPolicy.isVip failed: $it")
-            }
-
-            // ⑤ 可选：金币/宝石（服务端对账，默认关闭）
-            if (HOOK_COIN) {
-                runCatching {
-                    USER_INFO.toClass()
-                        .method {
-                            name = "getCoin"
-                            emptyParameters()
-                            returnType = IntType
-                        }
-                        .hook { after { result = 999999 } }
-                    USER_INFO.toClass()
-                        .method {
-                            name = "getGem"
-                            emptyParameters()
-                            returnType = IntType
-                        }
-                        .hook { after { result = 999999 } }
-                    YLog.info("$TAG | coin/gem hooked (local display only)")
-                }.onFailure {
-                    YLog.error("$TAG | hook coin/gem failed: $it")
-                }
-            }
-
-            YLog.info("$TAG | all hooks installed")
+            debug = false
+            dataChannel = false
         }
     }
 
-    private companion object {
-        const val TAG = "ReaMicroVIP"
+    override fun onHook() {
+        YukiHook.encase {
+            loadApp(PKG) {
 
-        const val PKG = "app.zhendong.reamicro"
+                // ① 核心开关：isVipActive(UserInfo) 恒 true
+                runCatching {
+                    USER_MODELS.toClass().resolve()
+                        .firstMethod {
+                            name = "isVipActive"
+                            emptyParameters()
+                            returnType = Boolean::class
+                        }
+                        .hook { intercept(true) }
+                    Log.i(TAG, "isVipActive -> true hooked")
+                }.onFailure { Log.e(TAG, "hook isVipActive failed", it) }
 
-        const val USER_INFO = "app.zhendong.reamicro.data.res.user.UserInfo"
-        const val USER_MODELS = "app.zhendong.reamicro.data.res.user.UserModelsKt"
-        const val SYNC_POLICY = "app.zhendong.reamicro.lan.sync.SyncPolicy"
+                // ② UI：userType -> 4 (UserType.SUPER_VIP)
+                runCatching {
+                    USER_INFO.toClass().resolve()
+                        .firstMethod {
+                            name = "getUserType"
+                            emptyParameters()
+                            returnType = Int::class
+                        }
+                        .hook { intercept(USER_TYPE_SUPER_VIP) }
+                    Log.i(TAG, "getUserType -> $USER_TYPE_SUPER_VIP hooked")
+                }.onFailure { Log.e(TAG, "hook getUserType failed", it) }
 
-        const val USER_TYPE_SUPER_VIP = 4
-        const val VIP_EXPIRE_FAKE = "2099-12-31 23:59:59"
+                // ③ UI：到期时间 -> 2099
+                runCatching {
+                    USER_INFO.toClass().resolve()
+                        .firstMethod {
+                            name = "getVipExpireTime"
+                            emptyParameters()
+                            returnType = String::class
+                        }
+                        .hook { intercept(VIP_EXPIRE_FAKE) }
+                    Log.i(TAG, "getVipExpireTime -> $VIP_EXPIRE_FAKE hooked")
+                }.onFailure { Log.e(TAG, "hook getVipExpireTime failed", it) }
 
-        const val HOOK_COIN = false
+                // ④ 局域网同步策略
+                runCatching {
+                    SYNC_POLICY.toClass().resolve()
+                        .firstMethod {
+                            name = "isVip"
+                            emptyParameters()
+                            returnType = Boolean::class
+                        }
+                        .hook { intercept(true) }
+                    Log.i(TAG, "SyncPolicy.isVip -> true hooked")
+                }.onFailure { Log.e(TAG, "hook SyncPolicy.isVip failed", it) }
+
+                // ⑤ 可选：金币/宝石（服务端对账，默认关闭）
+                if (HOOK_COIN) {
+                    runCatching {
+                        USER_INFO.toClass().resolve()
+                            .firstMethod {
+                                name = "getCoin"
+                                emptyParameters()
+                                returnType = Int::class
+                            }
+                            .hook { intercept(999999) }
+                        USER_INFO.toClass().resolve()
+                            .firstMethod {
+                                name = "getGem"
+                                emptyParameters()
+                                returnType = Int::class
+                            }
+                            .hook { intercept(999999) }
+                        Log.i(TAG, "coin/gem hooked (display only)")
+                    }.onFailure { Log.e(TAG, "hook coin/gem failed", it) }
+                }
+
+                Log.i(TAG, "all hooks installed")
+            }
+        }
     }
+
+    private const val TAG = "ReaMicroVIP"
+
+    private const val PKG = "app.zhendong.reamicro"
+    private const val USER_INFO = "app.zhendong.reamicro.data.res.user.UserInfo"
+    private const val USER_MODELS = "app.zhendong.reamicro.data.res.user.UserModelsKt"
+    private const val SYNC_POLICY = "app.zhendong.reamicro.lan.sync.SyncPolicy"
+
+    private const val USER_TYPE_SUPER_VIP = 4
+    private const val VIP_EXPIRE_FAKE = "2099-12-31 23:59:59"
+
+    private const val HOOK_COIN = false
 }

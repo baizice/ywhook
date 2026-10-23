@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="false"
         android:label="阅微VIP解锁(Yuki)"
         android:supportsRtl="true">
 
-        <meta-data android:name="xposedmodule" android:value="true" />
-        <meta-data android:name="xposeddescription"
-            android:value="阅微 2.3.2 VIP/超会解锁 · YukiHookAPI" />
-        <meta-data android:name="xposedminversion" android:value="93" />
-        <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
+        <!-- xposedmodule / xposed_init 由 yukihook-compiler(KSP) 自动生成 -->
+        <meta-data
+            android:name="xposeddescription"
+            android:value="阅微 2.3.2 VIP/超会解锁 · YukiHook 1.5.0" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="93"
+            tools:replace="android:value" />
+        <meta-data
+            android:name="xposedscope"
+            android:resource="@array/xposed_scope" />
 
     </application>
 </manifest>
