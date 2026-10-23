@@ -7,7 +7,6 @@ plugins {
 android {
     namespace = "com.op.hook.reamicro"
     compileSdk = 37
-
     defaultConfig {
         applicationId = "com.op.hook.reamicro"
         minSdk = 26
@@ -15,30 +14,19 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
-
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    buildFeatures {
-        buildConfig = true
-    }
-    packaging {
-        resources.excludes += setOf("META-INF/*")
-    }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { buildConfig = true }
+    packaging { resources.excludes += setOf("META-INF/*") }
 }
 
 dependencies {
@@ -51,5 +39,10 @@ dependencies {
     implementation("com.highcapable.kavaref:kavaref-core")
     implementation("com.highcapable.kavaref:kavaref-android")
     implementation("com.highcapable.kavaref:kavaref-extension")
+    // Pin AndroidX Core below 1.19.0: 1.19.0 requires AGP 9.1+.
+    constraints {
+        implementation("androidx.core:core:1.15.0") { because("Keep compatibility with AGP 8.13.x") }
+        implementation("androidx.core:core-ktx:1.15.0") { because("Keep compatibility with AGP 8.13.x") }
+    }
     ksp("com.highcapable.yukihookapi:yukihook-compiler")
 }
