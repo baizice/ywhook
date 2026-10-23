@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,12 +8,13 @@ plugins {
 
 android {
     namespace = "com.op.hook.reamicro"
-    compileSdk = 34
+    // YukiHook 1.5.0 的 AAR 要求 compileSdk >= 37
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.op.hook.reamicro"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }
@@ -26,15 +29,6 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         buildConfig = true
     }
@@ -42,6 +36,17 @@ android {
     packaging {
         resources.excludes += setOf("META-INF/*")
     }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
@@ -53,7 +58,6 @@ dependencies {
     implementation("com.highcapable.yukihookapi:yukihook-core")
     implementation("com.highcapable.yukihookapi:yukihook-runtime-xposed82")
     implementation("com.highcapable.yukihookapi:yukihook-extension-kavaref")
-
     implementation(platform("com.highcapable.kavaref:kavaref-bom:1.1.1"))
     implementation("com.highcapable.kavaref:kavaref-core")
     implementation("com.highcapable.kavaref:kavaref-android")
