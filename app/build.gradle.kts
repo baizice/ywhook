@@ -29,6 +29,10 @@ android {
     packaging { resources.excludes += setOf("META-INF/*") }
 }
 
+configurations.configureEach {
+    resolutionStrategy.force("androidx.core:core:1.15.0", "androidx.core:core-ktx:1.15.0")
+}
+
 dependencies {
     compileOnly("de.robv.android.xposed:api:82")
     implementation(platform("com.highcapable.yukihookapi:yukihook-bom:1.5.0"))
